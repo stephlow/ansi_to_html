@@ -9,6 +9,8 @@ defmodule AnsiToHTML.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps(),
+      description: description(),
+      package: package(),
 
       name: "AnsiToHTML",
       source_url: "https://github.com/stephlow/ansi_to_html",
@@ -27,6 +29,12 @@ defmodule AnsiToHTML.Mixfile do
       {:credo, "~> 0.5", only: [:dev, :test]},
       {:ex_doc, "~> 0.14", only: :dev, runtime: false}
     ]
+  end
+
+  defp description do
+    """
+    Small library to convert ANSI Styling codes to HTML.
+    """
   end
 
   defp package do
