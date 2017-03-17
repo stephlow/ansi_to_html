@@ -35,5 +35,6 @@ defmodule AnsiToHTML.Mixfile do
       licenses: ["MIT"],
       links: %{github: "https://github.com/stephlow/ansi_to_html"},
       files: ["lib", "mix.exs", "README.md", "LICENSE"]
+    ]
   end
 end
