@@ -12,15 +12,12 @@ defmodule AnsiToHTML do
 
   ## Examples
 
-      iex> AnsiToHTML.generate_html("\e[34m[\e[0m\e[32m:hello\e[0m\e[34m]\e[0m")
-      "<pre><span style=\\"color: blue;color: green;color: blue\\">[:hello]</span></pre>"
-
-      iex> AnsiToHTML.generate_html("\e[34m[\e[0m\e[32m:hello\e[0m\e[34m]\e[0m", :div)
-      "<div><span style=\\"color: blue;color: green;color: blue\\">[:hello]</span></div>"
+      iex> AnsiToHTML.generate_html(inspect :hello, pretty: true, syntax_colors: [atom: :green])
+      "<pre style=\\"font-family: monospace; font-size: 12px; padding: 4px; background-color: black; color: white;\\"><span style=\\"color: green;\\">:hello</span></pre>"
 
   """
-  @spec generate_html(String.t, atom) :: String.t
-  def generate_html(input, container_tag \\ :pre), do: input |> generate_phoenix_html(container_tag) |> safe_to_string()
+  @spec generate_html(String.t, AnsiToHTML.Theme.t) :: String.t
+  def generate_html(input, theme \\ %AnsiToHTML.Theme{}) when is_map(theme), do: input |> generate_phoenix_html(theme) |> safe_to_string()
 
   @doc """
   Generates a new Phoenix HTML tag based on the passed ANSI string.
@@ -29,38 +26,43 @@ defmodule AnsiToHTML do
 
   ## Examples
 
-      iex> AnsiToHTML.generate_phoenix_html("\e[34m[\e[0m\e[32m:hello\e[0m\e[34m]\e[0m")
+      iex> AnsiToHTML.generate_phoenix_html(inspect :hello, pretty: true, syntax_colors: [atom: :green])
       {:safe,
-        [60, "pre", [], 62,
-          [[60, "span",
-            [[32, "style", 61, 34, "color: blue;color: green;color: blue", 34]], 62,
-            ["[", ":hello", "]"], 60, 47, "span", 62]], 60, 47, "pre", 62]}
-
-      iex> AnsiToHTML.generate_phoenix_html("\e[34m[\e[0m\e[32m:hello\e[0m\e[34m]\e[0m", :div)
-      {:safe,
-        [60, "div", [], 62,
-          [[60, "span",
-            [[32, "style", 61, 34, "color: blue;color: green;color: blue", 34]], 62,
-            ["[", ":hello", "]"], 60, 47, "span", 62]], 60, 47, "div", 62]}
+      [60, "pre",
+        [[32, "style", 61, 34,
+          "font-family: monospace; font-size: 12px; padding: 4px; background-color: black; color: white;",
+          34]], 62,
+        [[60, "span", [[32, "style", 61, 34, "color: green;", 34]], 62, [":hello"],
+          60, 47, "span", 62]], 60, 47, "pre", 62]}
 
   """
-  @spec generate_phoenix_html(String.t, atom) :: Phoenix.HTML.Tag.t
-  def generate_phoenix_html(input, container_tag \\ :pre) do
+  @spec generate_phoenix_html(String.t, AnsiToHTML.Theme.t) :: Phoenix.HTML.Tag.t
+  def generate_phoenix_html(input, theme \\ %AnsiToHTML.Theme{}) when is_map(theme) do
     tokens = input
     |> String.replace(~r/\e\[(K|s|u|2J|2K|\d+(A|B|C|D|E|F|G|J|K|S|T)|\d+;\d+(H|f))/, "") # Remove cursor movement sequences
     |> String.replace(~r/#^.*\r(?!\n)#m/, "") # Remove carriage return
     |> tokenize
-    |> convert_to_tag
+    |> convert_to_tag(theme)
 
-    content_tag container_tag, tokens
+    {container_tag, container_attr} = Map.get(theme, :container)
+
+    content_tag container_tag, tokens, container_attr
   end
 
-  defp convert_to_tag(tokens), do: tokens |> Enum.map(&content_tag(:span, Map.get(&1, :text), style: ansi_to_css(Map.get(&1, :styles))))
+  defp convert_to_tag(tokens, theme) do
+    tokens |> Enum.map(fn(token) ->
+      token |> Map.get(:styles, []) |> Enum.reduce(nil, fn(style, acc) ->
+        {token_tag, token_attr} = Map.get(theme, :"#{style}")
+
+        content_tag(token_tag, acc || Map.get(token, :text), token_attr)
+      end);
+    end)
+  end
 
   defp tokenize(text) do
     text
     |> String.split(~r/(?:\e\[(.*?)m|(\x08))/, include_captures: true, trim: true) # Split by ANSI code
-    |> Enum.chunk_by(&(String.equivalent?(&1, "\e[37m") or String.equivalent?(&1, "\e[39m"))) # Split the result into chunks by ANSI white or reset (Kernel.inspect/2 uses white as a reset)
+    |> Enum.chunk_by(&(String.equivalent?(&1, "\e[0m"))) # Split the result into chunks by ANSI reset
     |> Enum.reject(fn(token) -> Enum.count(token) == 1 && String.starts_with?(List.first(token), "\e[") end) # Remove chunks which have only one style
     |> Enum.map(fn(token) -> Enum.group_by(token, &get_token_type/1) end) # Group token data by type
   end
@@ -71,28 +73,4 @@ defmodule AnsiToHTML do
       false -> :text
     end
   end
-
-  defp ansi_to_css(styles) do
-    styles
-    |> Enum.map(fn(style) ->
-        case style do
-          "\e[1m" -> "font-weight: bold"
-          "\e[3m" -> "font-style: italic"
-          "\e[4m" -> "text-decoration: underline"
-          "\e[9m" -> "text-decoration: line-through"
-          "\e[30m" -> "color: black"
-          "\e[31m" -> "color: red"
-          "\e[32m" -> "color: green"
-          "\e[33m" -> "color: yellow"
-          "\e[34m" -> "color: blue"
-          "\e[35m" -> "color: magenta"
-          "\e[36m" -> "color: cyan"
-          "\e[37m" -> "color: white"
-          _ -> ""
-        end
-      end)
-    |> Enum.reject(&String.equivalent?(&1, ""))
-    |> Enum.join(";")
-  end
-
 end

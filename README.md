@@ -35,6 +35,11 @@ iex> AnsiToHTML.generate_phoenix_html("\e[34m[\e[0m\e[32m:hello\e[0m\e[34m]\e[0m
       ["[", ":hello", "]"], 60, 47, "span", 62]], 60, 47, "pre", 62]}
 ```
 
+## Custom Themes
+
+You can use the `AnsiToHTML.Theme` struct to map ANSI codes to html.
+The struct defaults to a `<pre>` tag containing common tags such as `<strong>`, `<i>`, `<u>`, or otherwise `<span>` tags with inline styles.
+
 ## Phoenix View Helper
 
 You can define a helper function in your view which uses `AnsiToHTML` to convert a pretty `Kernel.inspect/2` to html:
@@ -49,7 +54,7 @@ defmodule MyApp.Web do
 
       # See the docs on Inspect.Opts for more information
       # https://hexdocs.pm/elixir/Inspect.Opts.html
-      @syntax_colors [string: :green, map: :blue, reset: :white]
+      @syntax_colors [string: :green, map: :blue]
       def pretty_inspect(variable), do: AnsiToHTML.generate_phoenix_html inspect variable, pretty: true, syntax_colors: @syntax_colors
 
     end
