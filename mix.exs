@@ -27,7 +27,7 @@ defmodule AnsiToHTML.Mixfile do
     [
       {:phoenix_html, "~> 2.6"},
       {:credo, "~> 0.5", only: [:dev, :test]},
-      {:ex_doc, "~> 0.14", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.20.2", only: :dev, runtime: false}
     ]
   end
 
