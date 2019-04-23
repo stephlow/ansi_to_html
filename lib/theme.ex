@@ -46,6 +46,7 @@ defmodule AnsiToHTML.Theme do
     "\e[35m": {:span, [style: "color: magenta;"]},
     "\e[36m": {:span, [style: "color: cyan;"]},
     "\e[37m": {:span, [style: "color: white;"]},
+    "\e[39m": {:text, []}, # default to the text color in browser
     "\e[40m": {:span, [style: "background-color: black;"]},
     "\e[41m": {:span, [style: "background-color: red;"]},
     "\e[42m": {:span, [style: "background-color: green;"]},
@@ -54,6 +55,14 @@ defmodule AnsiToHTML.Theme do
     "\e[45m": {:span, [style: "background-color: magenta;"]},
     "\e[46m": {:span, [style: "background-color: cyan;"]},
     "\e[47m": {:span, [style: "background-color: white;"]},
-    "\e[49m": {:span, [style: "background-color: black;"]},
+    "\e[49m": {:span, [style: "background-color: black;"]}
   )
+
+  def new(attrs) when is_list(attrs), do: new(Map.new(attrs))
+
+  def new(attrs) when is_map(attrs) do
+    %__MODULE__{}
+    |> Map.from_struct()
+    |> Map.merge(attrs)
+  end
 end

@@ -44,26 +44,83 @@ defmodule AnsiToHTML do
     |> tokenize
     |> convert_to_tag(theme)
 
-    {container_tag, container_attr} = Map.get(theme, :container)
+    case theme.container do
+      :none ->
+        tokens
+      {container_tag, container_attr} ->
+        content_tag(container_tag, tokens, container_attr)
+    end
+  end
 
-    content_tag container_tag, tokens, container_attr
+  defp accumulate_ansi_chunks([], acc, chunks) do
+    chunk_by_ansi_codes([], [acc | chunks])
+  end
+
+  defp accumulate_ansi_chunks(["\e[0m" | rem], acc, chunks) do
+    chunk_by_ansi_codes(rem, [acc | chunks])
+  end
+
+  defp accumulate_ansi_chunks(["\e[" <> _ = code | rem], acc, chunks) do
+    accumulate_ansi_chunks(rem, [code], [acc | chunks])
+  end
+
+  defp accumulate_ansi_chunks([next | rem], acc, chunks) do
+    accumulate_ansi_chunks(rem, [next | acc], chunks)
+  end
+
+  defp chunk_by_ansi_codes([], chunks), do: Enum.reverse(chunks)
+  
+  defp chunk_by_ansi_codes(["\e[0m" | rem], chunks) do
+    chunk_by_ansi_codes(rem, chunks)
+  end
+
+  defp chunk_by_ansi_codes(["\e[7m" | rem], chunks) do
+    # swap backgroud and forground code
+    # if the next piece is a text color code, then this
+    # attempts to make that the background and default
+    # the text to black
+    case rem do
+      [<<"\e[3", color::binary-size(1), "m">> | next_rem] ->
+        accumulate_ansi_chunks(next_rem, ["\e[4#{color}m", "\e[30m"], chunks)
+      _ ->
+        chunk_by_ansi_codes(rem, chunks)
+    end
+  end
+  
+  defp chunk_by_ansi_codes(["\e[" <> _ = code | rem], chunks) do
+    accumulate_ansi_chunks(rem, [code], chunks)
+  end
+
+  defp chunk_by_ansi_codes([next | rem], []) do
+    chunk_by_ansi_codes(rem, [[next]])
+  end
+
+  defp chunk_by_ansi_codes([next | rem], chunks) do
+    chunk_by_ansi_codes(rem, [[next] | chunks])
   end
 
   defp convert_to_tag(tokens, theme) do
-    tokens |> Enum.map(fn(token) ->
-      token |> Map.get(:styles, []) |> Enum.reduce(nil, fn(style, acc) ->
-        {token_tag, token_attr} = Map.get(theme, :"#{style}")
-
-        content_tag(token_tag, acc || Map.get(token, :text), token_attr)
-      end);
+    tokens
+    |> Enum.map(fn(token) ->
+      token
+      |> Map.get(:styles, [])
+      |> case do
+        [] ->
+          content_tag(:text, token.text)
+        styles ->
+          Enum.reduce(styles, nil, fn(style, acc) ->
+            {token_tag, token_attr} = Map.get(theme, :"#{style}")
+    
+            content_tag(token_tag, acc || Map.get(token, :text), token_attr)
+          end)
+      end
     end)
   end
 
   defp tokenize(text) do
     text
     |> String.split(~r/(?:\e\[(.*?)m|(\x08))/, include_captures: true, trim: true) # Split by ANSI code
-    |> Enum.chunk_by(&(String.equivalent?(&1, "\e[0m"))) # Split the result into chunks by ANSI reset
-    |> Enum.reject(fn(token) -> Enum.count(token) == 1 && String.starts_with?(List.first(token), "\e[") end) # Remove chunks which have only one style
+    |> chunk_by_ansi_codes([])
     |> Enum.map(fn(token) -> Enum.group_by(token, &get_token_type/1) end) # Group token data by type
   end
 
