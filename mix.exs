@@ -26,7 +26,6 @@ defmodule AnsiToHTML.Mixfile do
   defp deps do
     [
       {:phoenix_html, "~> 2.6"},
-      {:credo, "~> 0.5", only: [:dev, :test]},
       {:ex_doc, "~> 0.20.2", only: :dev, runtime: false}
     ]
   end
