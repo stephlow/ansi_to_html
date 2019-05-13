@@ -69,7 +69,7 @@ defmodule AnsiToHTML do
   end
 
   defp chunk_by_ansi_codes([], chunks), do: Enum.reverse(chunks)
-  
+
   defp chunk_by_ansi_codes(["\e[0m" | rem], chunks) do
     chunk_by_ansi_codes(rem, chunks)
   end
@@ -86,7 +86,7 @@ defmodule AnsiToHTML do
         chunk_by_ansi_codes(rem, chunks)
     end
   end
-  
+
   defp chunk_by_ansi_codes(["\e[" <> _ = code | rem], chunks) do
     accumulate_ansi_chunks(rem, [code], chunks)
   end
@@ -109,8 +109,8 @@ defmodule AnsiToHTML do
           content_tag(:text, token.text)
         styles ->
           Enum.reduce(styles, nil, fn(style, acc) ->
-            {token_tag, token_attr} = Map.get(theme, :"#{style}")
-    
+            {token_tag, token_attr} = Map.get(theme, :"#{style}") || default_style(style)
+
             content_tag(token_tag, acc || Map.get(token, :text), token_attr)
           end)
       end
@@ -129,5 +129,48 @@ defmodule AnsiToHTML do
       true -> :styles
       false -> :text
     end
+  end
+
+  # \e[38;5;228m - 8 bit color (Xterm)
+  # \e[38;2;255;255;102m - 24 bit RGB
+  defp default_style(<<"\e[38;", mode::binary-1, ";", color_m::binary>>) do
+    {r,g,b} = parse_rgb(color_m, mode)
+    {:span, [style: "color: rgb(#{r}, #{g}, #{b});"]}
+  end
+
+  # \e[48;5;228m - 8 bit color (Xterm)
+  # \e[48;2;255;255;102m - 24 bit RGB
+  defp default_style(<<"\e[48;", mode::binary-1, ";", color_m::binary>>) do
+    {r,g,b} = parse_rgb(color_m, mode)
+    {:span, [style: "background-color: rgb(#{r}, #{g}, #{b});"]}
+  end
+
+  defp default_style(style) do
+    require Logger
+    Logger.warn("[AnsiToHTML] ignoring unsupported ANSI style - #{inspect(style)}")
+    {:text, []}
+  end
+
+  defp parse_rgb(rgb_m, "2") when is_bitstring(rgb_m) do
+    # 255;255;203m
+    Regex.scan(~r/[[:digit:]]+/, rgb_m)
+    |> List.flatten()
+    |> Enum.map(&String.to_integer/1)
+    |> List.to_tuple()
+  end
+
+  defp parse_rgb(color_m, "5") when is_bitstring(color_m) do
+    # 228m
+    Integer.parse(color_m)
+    |> elem(0)
+    |> parse_rgb("5")
+  end
+
+  defp parse_rgb(color, "5") when is_number(color) do
+    color = color - 16
+    blue = rem(color, 6) |> Kernel.*(51)
+    green = div(color, 6) |> rem(6) |> Kernel.*(51)
+    red = div(color, 36) |> rem(6) |> Kernel.*(51)
+    {red, green, blue}
   end
 end
