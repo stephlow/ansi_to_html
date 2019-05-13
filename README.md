@@ -18,14 +18,14 @@ end
 I wrote this package so I could have all the nice things that Elixir's `Kernel.inspect/2` does for my productivity, all from the comfort of my `Phoenix.View`.
 
 #### Generating a HTML String:
-This is useful if you're not riding on the hype train called `Phoenix`:
+This is useful if you're not using `Phoenix`:
 ```elixir
 iex> AnsiToHTML.generate_html("\e[34m[\e[0m\e[32m:hello\e[0m\e[34m]\e[0m")
 "<pre><span style=\"color: blue;color: green;color: blue;\">[:hello]</span></pre>"
 ```
 
 #### Generating Phoenix HTML Tags:
-This is useful if you actually are riding on the hype train called `Phoenix` and want to render in your views:
+This is useful if you actually are using `Phoenix` and want to render in your views:
 ```elixir
 iex> AnsiToHTML.generate_phoenix_html("\e[34m[\e[0m\e[32m:hello\e[0m\e[34m]\e[0m")
 {:safe,
