@@ -26,10 +26,10 @@ defmodule AnsiToHTMLTest do
     assert generate_phoenix_html(@pretty_inspect) ==
       {:safe,
       [60, "pre",
-        [[32, "style", 61, 34,
+        [32, "style", 61, 34,
           "font-family: monospace; font-size: 12px; padding: 4px; background-color: black; color: white;",
-          34]], 62,
-        [[60, "span", [[32, "style", 61, 34, "color: green;", 34]], 62, [":hello"],
+          34], 62,
+        [[60, "span", [32, "style", 61, 34, "color: green;", 34], 62, [":hello"],
           60, 47, "span", 62]], 60, 47, "pre", 62]}
   end
 
@@ -37,10 +37,10 @@ defmodule AnsiToHTMLTest do
     assert AnsiToHTML.generate_phoenix_html(@pretty_inspect, @custom_theme) ==
       {:safe,
       [60, "code",
-        [[32, "class", 61, 34,
+        [32, "class", 61, 34,
           "container",
-          34]], 62,
-        [[60, "pre", [[32, "class", 61, 34, "green", 34]], 62, [":hello"],
+          34], 62,
+        [[60, "pre", [32, "class", 61, 34, "green", 34], 62, [":hello"],
           60, 47, "pre", 62]], 60, 47, "code", 62]}
   end
 

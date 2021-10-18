@@ -5,13 +5,12 @@ defmodule AnsiToHTML.Mixfile do
     [
       app: :ansi_to_html,
       version: "0.4.0",
-      elixir: "~> 1.4",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      elixir: "~> 1.11",
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       deps: deps(),
       description: description(),
       package: package(),
-
       name: "AnsiToHTML",
       source_url: "https://github.com/stephlow/ansi_to_html",
       homepage_url: "https://github.com/stephlow/ansi_to_html",
@@ -25,8 +24,8 @@ defmodule AnsiToHTML.Mixfile do
 
   defp deps do
     [
-      {:phoenix_html, "~> 2.6"},
-      {:ex_doc, "~> 0.20.2", only: :dev, runtime: false}
+      {:phoenix_html, "~> 3.0.4"},
+      {:ex_doc, "~> 0.25.3", only: :dev, runtime: false}
     ]
   end
 
