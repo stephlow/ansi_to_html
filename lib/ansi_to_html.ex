@@ -29,10 +29,10 @@ defmodule AnsiToHTML do
       iex> AnsiToHTML.generate_phoenix_html(inspect :hello, pretty: true, syntax_colors: [atom: :green])
       {:safe,
       [60, "pre",
-        [[32, "style", 61, 34,
+        [32, "style", 61, 34,
           "font-family: monospace; font-size: 12px; padding: 4px; background-color: black; color: white;",
-          34]], 62,
-        [[60, "span", [[32, "style", 61, 34, "color: green;", 34]], 62, [":hello"],
+          34], 62,
+        [[60, "span", [32, "style", 61, 34, "color: green;", 34], 62, [":hello"],
           60, 47, "span", 62]], 60, 47, "pre", 62]}
 
   """
