@@ -9,7 +9,7 @@ The package can be installed by adding `ansi_to_html` to your list of dependenci
 
 ```elixir
 def deps do
-  [{:ansi_to_html, "~> 0.5.0"}]
+  [{:ansi_to_html, "~> 0.5.1"}]
 end
 ```
 
