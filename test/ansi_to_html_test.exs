@@ -37,10 +37,9 @@ defmodule AnsiToHTMLTest do
     assert AnsiToHTML.generate_phoenix_html(@pretty_inspect, @custom_theme) ==
       {:safe,
       [60, "code",
-        [32, "class", 61, 34,
-          "container",
-          34], 62,
-        [[60, "pre", [32, "class", 61, 34, "green", 34], 62, [":hello"],
+        [" class=\"", "container", 34],
+        62,
+        [[60, "pre", [" class=\"", "green", 34], 62, [":hello"],
           60, 47, "pre", 62]], 60, 47, "code", 62]}
   end
 
