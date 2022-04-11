@@ -2,7 +2,7 @@ defmodule AnsiToHTML do
   use Phoenix.HTML
   @moduledoc """
   AnsiToHTML is a small library to convert ANSI Styling codes to HTML using [phoenix_html](https://github.com/phoenixframework/phoenix_html).
-  The library is not solely intented for use with `Phoenix` and can be easily used without it.
+  The library is not solely intended for use with `Phoenix` and can be easily used without it.
   """
 
   @doc """
@@ -75,7 +75,7 @@ defmodule AnsiToHTML do
   end
 
   defp chunk_by_ansi_codes(["\e[7m" | rem], chunks) do
-    # swap backgroud and forground code
+    # swap background and foreground code
     # if the next piece is a text color code, then this
     # attempts to make that the background and default
     # the text to black
