@@ -33,7 +33,12 @@ defmodule AnsiToHTML.Theme do
   """
   defstruct(
     name: "Default Theme",
-    container: {:pre, [style: "font-family: monospace; font-size: 12px; padding: 4px; background-color: black; color: white;"]},
+    container:
+      {:pre,
+       [
+         style:
+           "font-family: monospace; font-size: 12px; padding: 4px; background-color: black; color: white;"
+       ]},
     "\e[1m": {:strong, []},
     "\e[3m": {:i, []},
     "\e[4m": {:span, [style: "text-decoration: underline;"]},
@@ -46,7 +51,8 @@ defmodule AnsiToHTML.Theme do
     "\e[35m": {:span, [style: "color: magenta;"]},
     "\e[36m": {:span, [style: "color: cyan;"]},
     "\e[37m": {:span, [style: "color: white;"]},
-    "\e[39m": {:text, []}, # default to the text color in browser
+    # default to the text color in browser
+    "\e[39m": {:text, []},
     "\e[40m": {:span, [style: "background-color: black;"]},
     "\e[41m": {:span, [style: "background-color: red;"]},
     "\e[42m": {:span, [style: "background-color: green;"]},
