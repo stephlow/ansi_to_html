@@ -1,5 +1,7 @@
 defmodule AnsiToHTML do
-  use Phoenix.HTML
+  import Phoenix.HTML
+  use PhoenixHTMLHelpers
+
   @moduledoc """
   AnsiToHTML is a small library to convert ANSI Styling codes to HTML using [phoenix_html](https://github.com/phoenixframework/phoenix_html).
   The library is not solely intended for use with `Phoenix` and can be easily used without it.
@@ -16,8 +18,9 @@ defmodule AnsiToHTML do
       "<pre style=\\"font-family: monospace; font-size: 12px; padding: 4px; background-color: black; color: white;\\"><span style=\\"color: green;\\">:hello</span></pre>"
 
   """
-  @spec generate_html(String.t, AnsiToHTML.Theme.t) :: String.t
-  def generate_html(input, theme \\ %AnsiToHTML.Theme{}) when is_map(theme), do: input |> generate_phoenix_html(theme) |> safe_to_string()
+  @spec generate_html(String.t(), AnsiToHTML.Theme.t()) :: String.t()
+  def generate_html(input, theme \\ %AnsiToHTML.Theme{}) when is_map(theme),
+    do: input |> generate_phoenix_html(theme) |> safe_to_string()
 
   @doc """
   Generates a new Phoenix HTML tag based on the passed ANSI string.
@@ -36,17 +39,21 @@ defmodule AnsiToHTML do
           60, 47, "span", 62]], 60, 47, "pre", 62]}
 
   """
-  @spec generate_phoenix_html(String.t, AnsiToHTML.Theme.t) :: Phoenix.HTML.Tag.t
+  @spec generate_phoenix_html(String.t(), AnsiToHTML.Theme.t()) :: Phoenix.HTML.Tag.t()
   def generate_phoenix_html(input, theme \\ %AnsiToHTML.Theme{}) when is_map(theme) do
-    tokens = input
-    |> String.replace(~r/\e\[(K|s|u|2J|2K|\d+(A|B|C|D|E|F|G|J|K|S|T)|\d+;\d+(H|f))/, "") # Remove cursor movement sequences
-    |> String.replace(~r/#^.*\r(?!\n)#m/, "") # Remove carriage return
-    |> tokenize
-    |> convert_to_tag(theme)
+    tokens =
+      input
+      # Remove cursor movement sequences
+      |> String.replace(~r/\e\[(K|s|u|2J|2K|\d+(A|B|C|D|E|F|G|J|K|S|T)|\d+;\d+(H|f))/, "")
+      # Remove carriage return
+      |> String.replace(~r/#^.*\r(?!\n)#m/, "")
+      |> tokenize
+      |> convert_to_tag(theme)
 
     case theme.container do
       :none ->
         tokens
+
       {container_tag, container_attr} ->
         content_tag(container_tag, tokens, container_attr)
     end
@@ -82,6 +89,7 @@ defmodule AnsiToHTML do
     case rem do
       [<<"\e[3", color::binary-size(1), "m">> | next_rem] ->
         accumulate_ansi_chunks(next_rem, ["\e[4#{color}m", "\e[30m"], chunks)
+
       _ ->
         chunk_by_ansi_codes(rem, chunks)
     end
@@ -101,14 +109,15 @@ defmodule AnsiToHTML do
 
   defp convert_to_tag(tokens, theme) do
     tokens
-    |> Enum.map(fn(token) ->
+    |> Enum.map(fn token ->
       token
       |> Map.get(:styles, [])
       |> case do
         [] ->
           content_tag(:text, token.text)
+
         styles ->
-          Enum.reduce(styles, nil, fn(style, acc) ->
+          Enum.reduce(styles, nil, fn style, acc ->
             {token_tag, token_attr} = Map.get(theme, :"#{style}") || default_style(style)
 
             content_tag(token_tag, acc || Map.get(token, :text), token_attr)
@@ -119,9 +128,11 @@ defmodule AnsiToHTML do
 
   defp tokenize(text) do
     text
-    |> String.split(~r/(?:\e\[(.*?)m|(\x08))/, include_captures: true, trim: true) # Split by ANSI code
+    # Split by ANSI code
+    |> String.split(~r/(?:\e\[(.*?)m|(\x08))/, include_captures: true, trim: true)
     |> chunk_by_ansi_codes([])
-    |> Enum.map(fn(token) -> Enum.group_by(token, &get_token_type/1) end) # Group token data by type
+    # Group token data by type
+    |> Enum.map(fn token -> Enum.group_by(token, &get_token_type/1) end)
   end
 
   defp get_token_type(token) do
@@ -134,20 +145,20 @@ defmodule AnsiToHTML do
   # \e[38;5;228m - 8 bit color (Xterm)
   # \e[38;2;255;255;102m - 24 bit RGB
   defp default_style(<<"\e[38;", mode::binary-1, ";", color_m::binary>>) do
-    {r,g,b} = parse_rgb(color_m, mode)
+    {r, g, b} = parse_rgb(color_m, mode)
     {:span, [style: "color: rgb(#{r}, #{g}, #{b});"]}
   end
 
   # \e[48;5;228m - 8 bit color (Xterm)
   # \e[48;2;255;255;102m - 24 bit RGB
   defp default_style(<<"\e[48;", mode::binary-1, ";", color_m::binary>>) do
-    {r,g,b} = parse_rgb(color_m, mode)
+    {r, g, b} = parse_rgb(color_m, mode)
     {:span, [style: "background-color: rgb(#{r}, #{g}, #{b});"]}
   end
 
   defp default_style(style) do
     require Logger
-    Logger.warn("[AnsiToHTML] ignoring unsupported ANSI style - #{inspect(style)}")
+    Logger.warning("[AnsiToHTML] ignoring unsupported ANSI style - #{inspect(style)}")
     {:text, []}
   end
 
