@@ -142,24 +142,94 @@ defmodule AnsiToHTML do
     end
   end
 
-  # \e[38;5;228m - 8 bit color (Xterm)
-  # \e[38;2;255;255;102m - 24 bit RGB
-  defp default_style(<<"\e[38;", mode::binary-1, ";", color_m::binary>>) do
-    {r, g, b} = parse_rgb(color_m, mode)
-    {:span, [style: "color: rgb(#{r}, #{g}, #{b});"]}
+  defp default_style(style) do
+    style =
+      Regex.scan(~r/[[:digit:]]+/, style)
+      |> List.flatten()
+      |> Enum.map(&String.to_integer/1)
+      |> style_by_token()
+
+    case style do
+      [] -> {:text, []}
+      _ -> {:span, [style: style]}
+    end
+  end
+
+  defp style_by_token([1 | tail]), do: ["font-weight: bold;" | style_by_token(tail)]
+  defp style_by_token([2 | tail]), do: ["font-weight: lighter;" | style_by_token(tail)]
+  defp style_by_token([3 | tail]), do: ["font-style: italic;" | style_by_token(tail)]
+  defp style_by_token([4 | tail]), do: ["text-decoration: underline;" | style_by_token(tail)]
+  defp style_by_token([5 | tail]), do: ["text-decoration: blink;" | style_by_token(tail)]
+  defp style_by_token([7 | tail]), do: ["filter: invert(100%);" | style_by_token(tail)]
+  defp style_by_token([8 | tail]), do: ["visibility: hidden;" | style_by_token(tail)]
+  defp style_by_token([9 | tail]), do: ["text-decoration: line-through;" | style_by_token(tail)]
+
+  defp style_by_token([21 | tail]),
+    do: ["font-weight: normal; text-decoration: underline;" | style_by_token(tail)]
+
+  defp style_by_token([22 | tail]), do: ["font-weight: normal;" | style_by_token(tail)]
+  defp style_by_token([23 | tail]), do: ["font-style: normal;" | style_by_token(tail)]
+  defp style_by_token([24 | tail]), do: ["text-decoration: none;" | style_by_token(tail)]
+  defp style_by_token([25 | tail]), do: ["text-decoration: none;" | style_by_token(tail)]
+  defp style_by_token([27 | tail]), do: ["filter: none;" | style_by_token(tail)]
+  defp style_by_token([28 | tail]), do: ["visibility: visible;" | style_by_token(tail)]
+  defp style_by_token([29 | tail]), do: ["text-decoration: none;" | style_by_token(tail)]
+  defp style_by_token([53 | tail]), do: ["text-decoration: overline;" | style_by_token(tail)]
+  defp style_by_token([55 | tail]), do: ["text-decoration: none;" | style_by_token(tail)]
+
+  defp style_by_token([30 | tail]), do: ["color: black;" | style_by_token(tail)]
+  defp style_by_token([31 | tail]), do: ["color: red;" | style_by_token(tail)]
+  defp style_by_token([32 | tail]), do: ["color: green;" | style_by_token(tail)]
+  defp style_by_token([33 | tail]), do: ["color: yellow;" | style_by_token(tail)]
+  defp style_by_token([34 | tail]), do: ["color: blue;" | style_by_token(tail)]
+  defp style_by_token([35 | tail]), do: ["color: magenta;" | style_by_token(tail)]
+  defp style_by_token([36 | tail]), do: ["color: cyan;" | style_by_token(tail)]
+  defp style_by_token([37 | tail]), do: ["color: white;" | style_by_token(tail)]
+  # default to the text color in browser
+  # defp style_by_token([ 39 | tail ]) ": {:text, []},
+  defp style_by_token([40 | tail]), do: ["background-color: black;" | style_by_token(tail)]
+  defp style_by_token([41 | tail]), do: ["background-color: red;" | style_by_token(tail)]
+  defp style_by_token([42 | tail]), do: ["background-color: green;" | style_by_token(tail)]
+  defp style_by_token([43 | tail]), do: ["background-color: yellow;" | style_by_token(tail)]
+  defp style_by_token([44 | tail]), do: ["background-color: blue;" | style_by_token(tail)]
+  defp style_by_token([45 | tail]), do: ["background-color: magenta;" | style_by_token(tail)]
+  defp style_by_token([46 | tail]), do: ["background-color: cyan;" | style_by_token(tail)]
+  defp style_by_token([47 | tail]), do: ["background-color: white;" | style_by_token(tail)]
+
+  # \e[48;5;228m - 8 bit color (Xterm)
+  # \e[48;2;255;255;102m - 24 bit RGB
+  defp style_by_token([38 | tail]) do
+    {{r, g, b}, tail} = custom_color(tail)
+    ["color: rgb(#{r}, #{g}, #{b});" | style_by_token(tail)]
   end
 
   # \e[48;5;228m - 8 bit color (Xterm)
   # \e[48;2;255;255;102m - 24 bit RGB
-  defp default_style(<<"\e[48;", mode::binary-1, ";", color_m::binary>>) do
-    {r, g, b} = parse_rgb(color_m, mode)
-    {:span, [style: "background-color: rgb(#{r}, #{g}, #{b});"]}
+  defp style_by_token([48 | tail]) do
+    {{r, g, b}, tail} = custom_color(tail)
+    ["background-color: rgb(#{r}, #{g}, #{b});" | style_by_token(tail)]
   end
 
-  defp default_style(style) do
+  defp style_by_token([49 | tail]), do: ["background-color: black;" | style_by_token(tail)]
+
+  defp style_by_token([]), do: []
+
+  defp style_by_token([unknown_style_code | tail]) do
     require Logger
-    Logger.warning("[AnsiToHTML] ignoring unsupported ANSI style - #{inspect(style)}")
-    {:text, []}
+
+    Logger.warning(
+      "[AnsiToHTML] ignoring unsupported ANSI style - #{inspect(unknown_style_code)}"
+    )
+
+    style_by_token(tail)
+  end
+
+  defp custom_color([2, r, g, b | tail]) do
+    {{r, g, b}, tail}
+  end
+
+  defp custom_color([5, colour | tail]) do
+    {parse_rgb(colour, "5"), tail}
   end
 
   defp parse_rgb(rgb_m, "2") when is_bitstring(rgb_m) do
