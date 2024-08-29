@@ -101,6 +101,14 @@ defmodule AnsiToHTMLTest do
              "<pre style=\"font-family: monospace; font-size: 12px; padding: 4px; background-color: black; color: white;\"><span style=\"background-color: rgb(255, 255, 102);\">Howdy Partner</span></pre>"
   end
 
+  test "supports e[1;31m 4 bit coloring" do
+    color_line = "\e[1;31m" <> "Howdy Partner"
+
+    assert AnsiToHTML.generate_html(color_line) ==
+             "<pre style=\"font-family: monospace; font-size: 12px; padding: 4px; background-color: black; color: white;\"><span style=\"font-weight: bold;color: red;\">Howdy Partner</span></pre>"
+  end
+
+
   test "defaults to no styling if ANSI code not recognized" do
     color_line = "\e[1234m Howdy Partner"
 
